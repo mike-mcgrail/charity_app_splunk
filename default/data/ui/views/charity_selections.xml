@@ -1,0 +1,105 @@
+<form theme="dark">
+  <label>Charity Selections</label>
+  <description>Charity Navigator with table filtered by selections</description>
+  <search id="baseSearch">
+    <query>`charityindex` sourcetype="charity:cn" | fields advisories.severity, category.categoryName, currentRating.rating, irsClassification.deductibility, mailingAddress.stateOrProvince
+    | rename advisories.severity as Advisories 
+    | rename irsClassification.deductibility as deductible
+    | eval Advisories=if(Advisories="null","0", Advisories)
+    | eval irsDeductible=case(deductible="Contributions are deductible","yes", deductible="Contributions are not deductible", "no", 1=1, "not specified")</query>
+    <earliest>-24h</earliest>
+    <latest>now</latest>
+  </search>
+  <fieldset submitButton="false" autoRun="true">
+    <input type="dropdown" token="tokState" searchWhenChanged="true">
+      <label>State</label>
+      <choice value="*">(all)</choice>
+      <default>*</default>
+      <fieldForLabel>mailingAddress.stateOrProvince</fieldForLabel>
+      <fieldForValue>mailingAddress.stateOrProvince</fieldForValue>
+      <search base="baseSearch">
+        <query>| search category.categoryName=$tokCategory|s$ Advisories=$tokAdvisories$ currentRating.rating=$tokRating$ irsDeductible=$tokDeductible$  | stats count by mailingAddress.stateOrProvince</query>
+      </search>
+      <initialValue>*</initialValue>
+    </input>
+    <input type="dropdown" token="tokCategory" searchWhenChanged="true">
+      <label>Category</label>
+      <choice value="*">(all)</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <fieldForLabel>category.categoryName</fieldForLabel>
+      <fieldForValue>category.categoryName</fieldForValue>
+      <search base="baseSearch">
+        <query>| search mailingAddress.stateOrProvince=$tokState$ Advisories=$tokAdvisories$ currentRating.rating=$tokRating$ irsDeductible=$tokDeductible$ | stats count by category.categoryName</query>
+      </search>
+    </input>
+    <input type="dropdown" token="tokAdvisories" searchWhenChanged="true">
+      <label>Advisories</label>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <fieldForLabel>Advisories</fieldForLabel>
+      <fieldForValue>Advisories</fieldForValue>
+      <search base="baseSearch">
+        <query>| search mailingAddress.stateOrProvince=$tokState$ category.categoryName=$tokCategory|s$ currentRating.rating=$tokRating$ irsDeductible=$tokDeductible$ | stats count by Advisories</query>
+      </search>
+      <choice value="*">(all)</choice>
+    </input>
+    <input type="dropdown" token="tokRating" searchWhenChanged="true">
+      <label>Rating</label>
+      <choice value="*">(all)</choice>
+      <fieldForLabel>currentRating.rating</fieldForLabel>
+      <fieldForValue>currentRating.rating</fieldForValue>
+      <search base="baseSearch">
+        <query>| search mailingAddress.stateOrProvince=$tokState$ category.categoryName=$tokCategory|s$ Advisories=$tokAdvisories$ irsDeductible=$tokDeductible$ | stats count by currentRating.rating</query>
+      </search>
+      <default>*</default>
+      <initialValue>*</initialValue>
+    </input>
+    <input type="dropdown" token="tokDeductible" searchWhenChanged="true">
+      <label>Contributions Deductible?</label>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <fieldForLabel>irsDeductible</fieldForLabel>
+      <fieldForValue>irsDeductible</fieldForValue>
+      <search base="baseSearch">
+        <query>| search mailingAddress.stateOrProvince=$tokState$ category.categoryName=$tokCategory|s$ Advisories=$tokAdvisories$ currentRating.rating=$tokRating$ | stats count by irsDeductible</query>
+      </search>
+      <choice value="*">(all)</choice>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Matching Charities</title>
+      <table>
+        <search>
+          <query>`charityindex` sourcetype="charity:cn" mailingAddress.stateOrProvince=$tokState$ category.categoryName=$tokCategory|s$ currentRating.rating=$tokRating$
+          | fields charityName, advisories.severity, category.categoryName, currentRating.rating, currentRating.score, irsClassification.deductibility, mailingAddress.stateOrProvince, mailingAddress.city
+          | rename charityName as Name
+          | rename advisories.severity as Advisories 
+          | rename category.categoryName as Category 
+          | rename currentRating.rating as Rating
+          | rename currentRating.score as Score
+          | rename irsClassification.deductibility as deductible 
+          | rename mailingAddress.stateOrProvince as State
+          | rename mailingAddress.city as City
+          | eval Advisories=if(Advisories="null","0", Advisories) 
+          | eval irsDeductible=case(deductible="Contributions are deductible","yes", deductible="Contributions are not deductible", "no", 1=1, "not specified") 
+          | search Advisories=$tokAdvisories$ irsDeductible=$tokDeductible$
+          | table Name State City Category Advisories Rating Score irsDeductible
+          | sort 0 + Name</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+</form>

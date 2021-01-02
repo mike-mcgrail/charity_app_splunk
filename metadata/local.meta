@@ -1,0 +1,20 @@
+[views/charity_navigator]
+access = read : [ * ], write : [ admin, power ]
+export = none
+owner = admin
+version = 8.1.1
+modtime = 1609611174.794096000
+
+[savedsearches/charityNames]
+access = read : [ * ], write : [ admin, power ]
+export = none
+owner = admin
+version = 8.1.1
+modtime = 1609604737.649279000
+
+[views/charity_selections]
+access = read : [ * ], write : [ admin, power ]
+export = none
+owner = admin
+version = 8.1.1
+modtime = 1609609966.157231000

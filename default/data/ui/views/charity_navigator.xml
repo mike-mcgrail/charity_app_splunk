@@ -1,0 +1,129 @@
+<form theme="dark">
+  <label>Charity Navigator</label>
+  <description>Details by charity</description>
+  <search id="baseSearch">
+    <query>`charityindex` sourcetype="charity:cn" | search charityName=$tokCharity|s$ | dedup charityName | fields advisories.severity, category.categoryName, cause.causeName, charityName, charityNavigatorURL, mailingAddress.stateOrProvince</query>
+    <earliest>-24h</earliest>
+    <latest>now</latest>
+  </search>
+  <fieldset submitButton="false" autoRun="false">
+    <input type="text" token="tokPartial" searchWhenChanged="false">
+      <label>1. Enter Partial Charity Name</label>
+      <prefix>*</prefix>
+      <suffix>*</suffix>
+    </input>
+    <input type="dropdown" token="tokCharity" searchWhenChanged="true">
+      <label>2. Select Charity</label>
+      <fieldForLabel>charityName</fieldForLabel>
+      <fieldForValue>charityName</fieldForValue>
+      <search>
+        <query>| inputlookup charityNames.csv where charityName=$tokPartial|s$</query>
+      </search>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>$tokCharity$</title>
+      <single>
+        <title>location</title>
+        <search base="baseSearch">
+          <query>| stats latest(mailingAddress.stateOrProvince) as location</query>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>$tokCharity$</title>
+      <single>
+        <title>category</title>
+        <search base="baseSearch">
+          <query>| stats latest(category.categoryName) as category</query>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>$tokCharity$</title>
+      <single>
+        <title>cause</title>
+        <search base="baseSearch">
+          <query>| stats latest(cause.causeName) as cause</query>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>$tokCharity$</title>
+      <single>
+        <title>advisories</title>
+        <search base="baseSearch">
+          <query>| rename "advisories.severity" as advSev
+          | eval Advisories = if(advSev="null", 0, advSev)
+          | stats latest(Advisories)</query>
+        </search>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Star Rating</title>
+      <chart>
+        <search>
+          <query>`charityindex` sourcetype="charity:cn" | fields charityName, currentRating.rating
+          | eval selectedCharity = if(charityName=$tokCharity|s$, $tokCharity|s$, "All Others (avg)")
+          | stats avg(currentRating.rating) as rating by selectedCharity
+          | eval rating = round(rating, 2)
+          | eval sortField = if(selectedCharity=$tokCharity|s$, 1, 2)
+          | sort sortField
+          | fields - sortField</query>
+          <earliest>-24h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisLabelsY.majorUnit">1</option>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.visibility">collapsed</option>
+        <option name="charting.axisY.maximumNumber">4</option>
+        <option name="charting.axisY.minimumNumber">0</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.rangeValues">[0,1,2,3,4]</option>
+        <option name="charting.chart.showDataLabels">all</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">minimal</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.gaugeColors">["0xdc4e41","0xf1813f","0xf8be34","0x53a051"]</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Score</title>
+      <chart>
+        <search>
+          <query>`charityindex` sourcetype="charity:cn" | fields charityName, currentRating.score
+          | eval selectedCharity = if(charityName=$tokCharity|s$, $tokCharity|s$, "All Others (avg)")
+          | stats avg(currentRating.score) as score by selectedCharity
+          | eval score = round(score, 2)
+          | eval sortField = if(selectedCharity=$tokCharity|s$, 1, 2)
+          | sort sortField
+          | fields - sortField</query>
+          <earliest>-24h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.axisLabelsY.majorUnit">10</option>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.visibility">collapsed</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.maximumNumber">100</option>
+        <option name="charting.axisY.minimumNumber">0</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.chart">bar</option>
+        <option name="charting.chart.rangeValues">[0,60,75,85,100]</option>
+        <option name="charting.chart.showDataLabels">all</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.gaugeColors">["0xdc4e41","0xf1813f","0xf8be34","0x53a051"]</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+</form>
